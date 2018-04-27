@@ -217,7 +217,7 @@ int SRSAPVEvent::CMSStripMapping3(int chNo) {
 
 //=====================================================
 int SRSAPVEvent::CMSStripMapping4(int chNo) {
-  //chNo=4;
+  chNo=4;
   return chNo ;
 }
 

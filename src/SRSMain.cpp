@@ -1,5 +1,4 @@
 //Framework Includes
-#include <queue>
 #include "SRSMain.h"
 #include "SRSConfiguration.h"
 #include "SRSMapping.h"
@@ -29,91 +28,128 @@ SRSMain::Reprocess(){
   std::ifstream ifs(_rawfile.c_str(),std::ios::binary);
   unsigned int nMax = 5000;
   unsigned long buffer[nMax];
+  std::vector<unsigned int> previous;
   unsigned long event[nMax];
-  unsigned int iw = 7;
   unsigned int nw = 0;
-  bool goaway = false;
-  bool firstADCinFEC = true;
-  std::queue<unsigned int>  adcheader;
-  int nhead = 8;
-  int nadc=0;
-  bool fillFECdata = false;
-  unsigned int nEvent=0;
-
+  bool newevent=true;
+  unsigned int nEvent = 0;
+  unsigned int prenevt =0;
+  unsigned int iFEC=0,nFEC = 2;
   SRSEventBuilder* eventBuilder = 0;
   bool debug_s=false;
-  unsigned int iFEC=99;
-  int nFEC = _maps->GetNbOfFECs();
-
-
   do {
+    if (newevent){
+      newevent = false;
+      nEvent++;
+      if (nEvent%1000==0) std::cout<<" +++ reprocess: Event # "<<nEvent<<std::endl;
+    }
     unsigned int j  =0x0;
     ifs.read((char*)&j,4);
+    //    if (debug_s) std::cout <<" j  "<<std::hex<<j<<std::endl;
     if (!ifs.eof()){
-      adcheader.push(j);
-      if (adcheader.size() == 10)
-        adcheader.pop();
-      //      std::cout <<"  first in queie 0x" <<std::hex<<adcheader.back()<<"  queue size "<<std::dec<<adcheader.size()               
-      //                <<" last 0x"<<std::hex<<adcheader.front()<<std::dec<<std::endl;                                                 
-      if (firstADCinFEC && (( j >>8 ) & 0xffffff) == 0x41505a){
-        firstADCinFEC = false;
-        fillFECdata = true;
-
-        if (adcheader.size() ==9 ){
-          buffer[0]=adcheader.front();
-          adcheader.pop();
-          buffer[1]=adcheader.front();
-          adcheader.pop();
-          iFEC = adcheader.front() & 0xff;
-          for (unsigned int i=2;i<8;i++){
-            buffer[i] = adcheader.front();
-            adcheader.pop();
+      buffer[nw]=j&0xffffffff;
+      nw++;
+      if (nw >= nMax) {
+	std::cout<<" +++ reprocess: Number of long words on this event exceed the maximum "<<nMax<<" please change nMax"<<std::endl;
+	this->Close();
+        exit(-1);
+      }
+      // Each FEC data finish with 0xfafafafa and one events is componsed by NFEC fragments. The event builder collect the hit of the                                                                    
+      // fragments and make the clusters.                                                                                                                                                                
+      if ((j&0xffffffff) == 0xfafafafa){
+        bool goodfragment=false;
+        iFEC++;
+	if (debug_s) std::cout <<std::dec<<" end of data fragment record mark "<<std::endl;
+        // realign the words skiping event header, the event start 8 words before the first adc mark (0x41505a)
+        bool first = true;                                                                                          
+	int start_eventRecord=0;
+	int end_eventRecord=0;
+        for (unsigned int ir=0;ir<nw;ir++){
+          if( ((buffer[ir] >> 8) & 0xffffff) == 0x41505a) {
+            if (first) {
+	      // take out the event header, keep the fec header and the adc payloads
+              start_eventRecord = ir - 8;
+              if (start_eventRecord < 0) {
+		if (debug_s)std::cout <<"  +++ reprocess: Wrong Start of Event"<<std::endl;
+		goodfragment = false;
+              } else {
+		goodfragment = ( ((buffer[ir-6])&0xff) == iFEC);
+	      }
+              first = false;
+            }
           }
-	  iw=7;
-        } else {
-	  std::cout<<"SRSMain::  +++ reprocess: Wrong Start of Event"<<std::endl;
 	}
-        nadc++;
-        int adcId = j&0xff;//(( j >>8 ) & 0xffffffff);                                                                                  
-	if (debug_s)std::cout <<"SRSMain::  +++ reprocess: "<<std::hex<<" ADC Id = 0x"<<adcId<<std::dec<<std::endl;
-	//	goaway = (nadc == 35);
-      } else if ((j&0xffffffff) == 0xfafafafa){
-        firstADCinFEC = true;
-        fillFECdata = false;
-        iw++;
-        buffer[iw]=j;
-        if (iFEC == 1) {
-	  eventBuilder = new SRSEventBuilder(nEvent,_conf->GetMaxClusterSize(), _conf->GetMinClusterSize(), _conf->GetZeroSupCut(),\
-					     _conf->GetRunType(),
-					     std::string(_conf->GetClusterPositionCorrectionFlag()).find("applyCorrections")!=std::\
-					     string(_conf->GetClusterPositionCorrectionFlag()).npos);
-
-          nEvent++;
-	  if(debug_s)std::cout <<"New Event "<<nEvent<<std::endl;
+        end_eventRecord=nw-start_eventRecord;
+        int tFEC=0;
+        if (previous.size()>0){
+          if (goodfragment ) {
+            //  build hits from previous events; 
+	    //  decode previous
+            //  and copy actual event into previous
+            for (unsigned int i=0;i<previous.size();i++){
+              event[i]=previous[i];
+            }
+	    if (debug_s) std::cout <<" +++ reprocess: event # "<<nEvent<<" FEC "<<2-iFEC+1<<std::endl;
+            tFEC=2-iFEC+1;
+            if (tFEC==1) {
+              eventBuilder = new SRSEventBuilder(nEvent,_conf->GetMaxClusterSize(), _conf->GetMinClusterSize(), _conf->GetZeroSupCut(), _conf->GetRunType(), 
+						 std::string(_conf->GetClusterPositionCorrectionFlag()).find("applyCorrections")!=std::string(_conf->GetClusterPositionCorrectionFlag()).npos);
+            }
+            SRSFECDecoder dec(eventBuilder);
+            dec.decodeFEC(previous.size(),event);
+	    if(debug_s) std::cout << " >>>> Good! Event  "<<std::setw(6)<<prenevt<<" iFEC "<<tFEC<<" # word  "<<previous.size()<<std::endl;
+            previous.clear();
+            for (unsigned int ir=0; ir < nw-start_eventRecord;ir++){
+              previous.push_back(buffer[start_eventRecord+ir]);
+            }
+            prenevt=nEvent;
+          }else{
+            //  bad fragment    merge fragment with previous fregment
+            iFEC--;
+            for (unsigned int ir=0;ir<nw;ir++){
+              previous.push_back(buffer[ir]);
+            }
+            prenevt=nEvent;
+            tFEC=iFEC;
+            if (tFEC==1) {
+              eventBuilder = new SRSEventBuilder(nEvent,_conf->GetMaxClusterSize(), _conf->GetMinClusterSize(), _conf->GetZeroSupCut(), _conf->GetRunType(), 
+						 std::string(_conf->GetClusterPositionCorrectionFlag()).find("applyCorrections")!=std::string(_conf->GetClusterPositionCorrectionFlag()).npos);
+            }
+	    if(debug_s)	std::cout << " >>>> BAD! Merging two fragment in  "<<nEvent<< " tFEC "<<iFEC<<" # word "<<previous.size()<<std::endl;
+	    //decode previous                                                                                                                                                                            
+            for(unsigned int i=0;i<previous.size();i++){
+              event[i]=previous[i];
+            }
+	    if (debug_s) std::cout <<" +++ reprocess: event # "<<nEvent<<" FEC "<<tFEC<<std::endl;
+            SRSFECDecoder dec(eventBuilder);
+            dec.decodeFEC(previous.size(),event);
+            previous.clear();
+          }	  
+        }else{
+	  if(debug_s) std::cout <<" >>>> SKIP the decoding waiting next fragment"<<std::endl;
+          for (unsigned int ir=0; ir < nw-start_eventRecord;ir++){
+            previous.push_back(buffer[start_eventRecord+ir]);
+          }
+          prenevt=nEvent;
         }
-        if (iFEC == nFEC){
-	  SRSFECDecoder dec(eventBuilder);
-	  dec.decodeFEC(iw,buffer);
-	  if (nEvent%1000==0) std::cout<<" SRSMain:: +++ reprocess: Event # "<<nEvent<<std::endl;
+        if (tFEC == nFEC){
+          // The event is now complete and we can form the cluster
 	  if (debug_s) std::cout <<" +++ reprocess: compute cluster"<<std::endl;
           eventBuilder->ComputeClustersInDetectorPlane();
-          // Fill the trees                                                                                                             
+          // Fill the trees
           _root->FillRootFile(eventBuilder);
           eventBuilder=0;
-
-        }else if (iFEC > 3){
-	  std::cout <<" BAD FEC"<<std::endl;
-        } else {
-	  SRSFECDecoder dec(eventBuilder);
-	  dec.decodeFEC(iw,buffer);
+	  
         }
-	iw=0;
-      } else if (fillFECdata){
-        iw++;
-        buffer[iw]=j;
-      }
-    }
-  }while(!ifs.eof() && !goaway);
+        if (iFEC == 2) {
+          newevent = true;
+          //  delete eventBuilder;
+          iFEC = 0;
+        }
+        nw = 0;
+      } // end of Mark control
+    } // good file control...
+  }while(!ifs.eof());
   ifs.close();
   if (eventBuilder != 0){
     //    delete eventBuilder;
