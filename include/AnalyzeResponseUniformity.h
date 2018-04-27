@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include "TLatex.h"
 
 //Framework Includes
 //#include "DetectorMPGD.h"
