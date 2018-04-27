@@ -1,10 +1,14 @@
 **************************************************
 *                                                *
-*	CHANGELOG: CMS_GEM_Analysis_Framework        *
-*	VERSION: 5.1.0                               *
-*	LAST UPDATE: Aug 21 2017                     *
+*	CHANGELOG: CMS_GEM_Analysis_Framework    *
+*	VERSION: 5.2.0                           *
+*	LAST UPDATE: Apr 26 2018                 *
 *                                                *
 **************************************************
+
+Update: April 26st 2018
+==================================================
+-> Improved plots style
 
 Update: August 21st 2017
 ==================================================
