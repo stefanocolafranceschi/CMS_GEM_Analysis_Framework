@@ -8,6 +8,8 @@
 
 #include "DetectorMPGD.h"
 #include "AnalyzeResponseUniformity.h"
+#include <TAxis.h>
+#include <Math/DistFunc.h>
 
 using std::cout;
 using std::endl;
@@ -49,7 +51,7 @@ void AnalyzeResponseUniformity::calcStatistics(SummaryStatistics &inputStatObs, 
     std::multiset<float>::iterator iterQ1 = mset_fInputObs.begin();
     std::multiset<float>::iterator iterQ2 = mset_fInputObs.begin();
     std::multiset<float>::iterator iterQ3 = mset_fInputObs.begin();
-
+    
     //Determine max, min, & mean
     inputStatObs.fMax   = *mset_fInputObs.rbegin();   //Last member of the multiset
     inputStatObs.fMin   = *mset_fInputObs.begin();    //First member of the multiset
@@ -85,13 +87,14 @@ void AnalyzeResponseUniformity::calcStatistics(SummaryStatistics &inputStatObs, 
         inputStatObs.hDist->Fill( (*iterSet) );
     } //End Loop Over input multiset
     
+    
     shared_ptr<TF1> fitDist_Gaus = std::make_shared<TF1>( TF1( getNameByIndex(-1, -1, -1, "fit", strObsName + "Dataset" ).c_str(), "gaus(0)", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev) );
     fitDist_Gaus->SetParameter(0, inputStatObs.hDist->GetBinContent( inputStatObs.hDist->GetMaximumBin() ) );
     fitDist_Gaus->SetParameter(1, inputStatObs.hDist->GetMean() );
     fitDist_Gaus->SetParameter(2, inputStatObs.hDist->GetRMS() );
     
     inputStatObs.hDist->Fit(fitDist_Gaus.get(),"QM","", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev );
-
+    
     shared_ptr<TF1> fitDist_Landau = std::make_shared<TF1>( TF1( getNameByIndex(-1, -1, -1, "fit", strObsName + "Dataset" ).c_str(), "landau(0)", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev) );
     fitDist_Landau->SetParameter(0, inputStatObs.hDist->GetBinContent( inputStatObs.hDist->GetMaximumBin() ) );
     fitDist_Landau->SetParameter(1, inputStatObs.hDist->GetMean() );
@@ -99,8 +102,33 @@ void AnalyzeResponseUniformity::calcStatistics(SummaryStatistics &inputStatObs, 
     
     inputStatObs.hDist->Fit(fitDist_Landau.get(),"QM","", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev );
     
+    // stefano chi2 fit
+    //shared_ptr<TF1> fitDist_Landau = std::make_shared<TF1>( TF1( getNameByIndex(-1, -1, -1, "fit", strObsName + "Dataset" ).c_str(), "[0]*pow(x,360/2-1)*TMath::Exp(-x/2*)", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev) );
+    //fitDist_Landau->SetParameter(0, inputStatObs.hDist->GetBinContent( inputStatObs.hDist->GetMaximumBin() ) );
+    //TString formula ="[0]*ROOT::Math:::chisquared_pdf(x,"+inputStatObs.hDist->GetEntries()+"))";
+    //TF1 * f1 = new TF1("f1","[0]*[1]*[2}*pow(x,360/2-1)*TMath::Exp(-x/2)");
+    //TF1 * f1 = new TF1("f1","[0]+[1]*(pow(x,[2]/2-1)*TMath::Exp(-x/2)) /  (pow(2,[2]/2)*TMath::Factorial(int([2]/2)-1))");
+    //TF1 * f1 = new TF1("f1","[0]*[1]*[2]*(pow(x,50/2-1)*TMath::Exp(-x/2) ) /  ( (pow(2,50/2) * TMath::Factorial((50/2)-1) ) )",-2,100);
+    //TF1 *f1 = new TF1("f1","[0]*[1]*[2]*ROOT::Math::chisquared_pdf(x,3)");
+    //f1->SetParLimits(1,inputStatObs.hDist->GetEntries(),inputStatObs.hDist->GetEntries());
+    //inputStatObs.hDist->Fit(fitDist_Landau.get(),"QM","", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5.* inputStatObs.fStdDev );
+    //cout << "entries " << inputStatObs.hDist->GetEntries() << endl;
+    
+    
+    //shared_ptr<TF1> fitDist_ChisQuare = std::make_shared<TF1>( TF1( getNameByIndex(-1, -1, -1, "fit", strObsName + "Dataset" ).c_str(), "f1", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev) );
+    //fitDist_ChisQuare->SetParameter(0, inputStatObs.hDist->GetBinContent( inputStatObs.hDist->GetMaximumBin() ) );
+    //fitDist_ChisQuare->SetParameter(0,1);
+    //fitDist_ChisQuare->SetParameter(1,1);
+    //fitDist_ChisQuare->SetParameter(2,100);
+    //fitDist_ChisQuare->SetParLimits(0,1,1);
+    //fitDist_ChisQuare->SetParLimits(1,1,200);
+    //fitDist_ChisQuare->SetParLimits(2,1,500000);
+    //inputStatObs.hDist->Fit(fitDist_ChisQuare.get(),"QM","", inputStatObs.fMean - 5. * inputStatObs.fStdDev, inputStatObs.fMean + 5. * inputStatObs.fStdDev );
+    
+    
     float fNormChi2_Gaus = fitDist_Gaus->GetChisquare() / fitDist_Gaus->GetNDF();
     float fNormChi2_Landau = fitDist_Landau->GetChisquare() / fitDist_Landau->GetNDF();
+    
     
     if (fNormChi2_Gaus < fNormChi2_Landau) {
         inputStatObs.fitDist = fitDist_Gaus;
@@ -115,13 +143,13 @@ void AnalyzeResponseUniformity::calcStatistics(SummaryStatistics &inputStatObs, 
 bool AnalyzeResponseUniformity::isQualityFit(shared_ptr<TF1> fitInput){
     //Variable Declaration
     bool bIsQuality = true;
-
+    
     for( int i=0; i < fitInput->GetNpar(); i++){
-	bIsQuality = isQualityFit(fitInput, i);
-
-	if(!bIsQuality) break;
-    }    
-
+        bIsQuality = isQualityFit(fitInput, i);
+        
+        if(!bIsQuality) break;
+    }
+    
     return bIsQuality;
 } //End AnalyzeResponseUniformity::isQualityFit()
 
@@ -129,24 +157,24 @@ bool AnalyzeResponseUniformity::isQualityFit(shared_ptr<TF1> fitInput, int iPar)
     //Variable Declaration
     double dPar, dPar_Err;
     double dParLimit_Lower, dParLimit_Upper;
-
-	dPar = fitInput->GetParameter(iPar);
-	dPar_Err = fitInput->GetParError(iPar);
-	fitInput->GetParLimits(iPar,dParLimit_Lower,dParLimit_Upper);
-
-	if (dPar == 0) {
-		return false;
-	}
-	else if ( ( fabs(dPar - dParLimit_Lower) / dPar ) < 0.001 ){
-		return false;
-	}
-	else if ( ( fabs(dPar - dParLimit_Upper) / dPar) < 0.001 ){
-		return false;
-	}
-	else if ( ( dPar_Err / dPar ) > 0.1 ) {
-		return false;
-	}
-
+    
+    dPar = fitInput->GetParameter(iPar);
+    dPar_Err = fitInput->GetParError(iPar);
+    fitInput->GetParLimits(iPar,dParLimit_Lower,dParLimit_Upper);
+    
+    if (dPar == 0) {
+        return false;
+    }
+    else if ( ( fabs(dPar - dParLimit_Lower) / dPar ) < 0.001 ){
+        return false;
+    }
+    else if ( ( fabs(dPar - dParLimit_Upper) / dPar) < 0.001 ){
+        return false;
+    }
+    else if ( ( dPar_Err / dPar ) > 0.1 ) {
+        return false;
+    }
+    
     return true;
 } //End AnalyzeResponseUniformity::isQualityFit()
 
@@ -171,7 +199,7 @@ TF1 AnalyzeResponseUniformity::getFit(int iEta, int iPhi, int iSlice, InfoFit & 
     
     //Check to see if the number of parameters in the TF1 meets the expectation
     if ( ret_Func.GetNpar() < setupFit.m_vec_strFit_ParamIGuess.size() || ret_Func.GetNpar() < setupFit.m_vec_strFit_ParamLimit_Min.size() || ret_Func.GetNpar() < setupFit.m_vec_strFit_ParamLimit_Max.size() ) { //Case: Set points for initial parameters do not meet expectations
-
+        
         printClassMethodMsg("AnalyzeResponseUniformity","getFit","Error! Number of Parameters in Function Less Than Requested Initial Guess Parameters!");
         printClassMethodMsg("AnalyzeResponseUniformity","getFit", ("\tNum Parameter: " + getString( ret_Func.GetNpar() ) ).c_str() );
         printClassMethodMsg("AnalyzeResponseUniformity","getFit", ("\tNum Initial Guesses: " + getString( setupFit.m_vec_strFit_ParamIGuess.size() ) ).c_str() );
@@ -192,13 +220,13 @@ TF1 AnalyzeResponseUniformity::getFit(int iEta, int iPhi, int iSlice, InfoFit & 
     //Set Fit Parameters - Boundaries
     //------------------------------------------------------
     if (setupFit.m_vec_strFit_ParamLimit_Min.size() == setupFit.m_vec_strFit_ParamLimit_Max.size() ) { //Check: Stored Parameter Limits Match
-
+        
         //Here we use vec_strFit_ParamLimit_Min but we know it has the same number of parameters as vec_strFit_ParamLimit_Max
         //For each fit parameter, set the boundary
         for (int i=0; i<setupFit.m_vec_strFit_ParamLimit_Min.size(); ++i) { //Loop over boundary parameters
             fLimit_Min = getParsedInput(setupFit.m_vec_strFit_ParamLimit_Min[i], hInput, specInput);
             fLimit_Max = getParsedInput(setupFit.m_vec_strFit_ParamLimit_Max[i], hInput, specInput);
-
+            
             (fLimit_Max > fLimit_Min) ? ret_Func.SetParLimits(i, fLimit_Min, fLimit_Max ) : ret_Func.SetParLimits(i, fLimit_Max, fLimit_Min );
         } //End Loop over boundary parameters
     } //End Check: Stored Parameter Limits Match
@@ -279,7 +307,7 @@ TH1F AnalyzeResponseUniformity::getHistogram(int iEta, int iPhi, HistoSetup &set
     
     //Histo Declaration
     TH1F ret_Histo(strName.c_str(), "", setupHisto.iHisto_nBins, setupHisto.fHisto_xLower, setupHisto.fHisto_xUpper );
-
+    
     //Set Histo Data Members
     ret_Histo.SetXTitle( setupHisto.strHisto_Title_X.c_str() );
     ret_Histo.SetYTitle( setupHisto.strHisto_Title_Y.c_str() );
@@ -288,7 +316,7 @@ TH1F AnalyzeResponseUniformity::getHistogram(int iEta, int iPhi, HistoSetup &set
     
     //Set Directory to the global directory
     ret_Histo.SetDirectory(gROOT);
-
+    
     //Return Histogram
     return ret_Histo;
 } //End AnalyzeResponseUniformity::getHistogram()
@@ -302,6 +330,11 @@ TH2F AnalyzeResponseUniformity::getHistogram2D(int iEta, int iPhi, HistoSetup &s
     TH2F ret_Histo(strName.c_str(), "", setupHisto_X.iHisto_nBins, setupHisto_X.fHisto_xLower, setupHisto_X.fHisto_xUpper, setupHisto_Y.iHisto_nBins, setupHisto_Y.fHisto_xLower, setupHisto_Y.fHisto_xUpper);
     
     //Set Histo Data Members
+    //Setup the TLatex for this iEta sector
+    TLatex latex_EtaSector;
+    latex_EtaSector.SetTextSize(0.05);
+    latex_EtaSector.DrawLatexNDC(0.125, 0.85, ( "i#eta = " + getString(iEta) ).c_str() );
+    
     ret_Histo.SetXTitle( setupHisto_X.strHisto_Title_X.c_str() );
     ret_Histo.SetYTitle( setupHisto_Y.strHisto_Title_X.c_str() );
     

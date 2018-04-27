@@ -85,8 +85,8 @@ int QualityControl::Timing::getDeltaTForChannel(std::map<std::string, int> input
     int max = getMaxForChannelAND(inputMap);
     int min = getMinForChannelOR(inputMap);
     
-	//cout<<"QualityControl::Timing::getDeltaTForChannel() - max = " << max << "; min = " << min << endl;
-
+    //cout<<"QualityControl::Timing::getDeltaTForChannel() - max = " << max << "; min = " << min << endl;
+    
     if (max > 0 && min > 0 ) {
         return abs(max - min);
     }
@@ -101,14 +101,14 @@ int QualityControl::Timing::getMaxForChannelAND(std::map<std::string, int> input
     //int iRetVal;
     
     std::pair<std::string, int> min = *min_element(inputMap.begin(), inputMap.end(), CompareSecond_Min() );
-    //std::pair<std::string, int> min = *min_element(inputMap.begin(), inputMap.end() );    
-
+    //std::pair<std::string, int> min = *min_element(inputMap.begin(), inputMap.end() );
+    
     //Require All Elements to be nonzero (i.e. have a signal)
     if ( min.second > 0 ) {
         //std::pair<std::string, int> max = *max_element(inputMap.begin(), inputMap.end(), CompareSecond_Max() );
-	std::pair<std::string, int> max = *max_element(inputMap.begin(), inputMap.end(), CompareSecond_Min() );	
-	//std::pair<std::string, int> max = *max_element(inputMap.begin(), inputMap.end() );        
-
+        std::pair<std::string, int> max = *max_element(inputMap.begin(), inputMap.end(), CompareSecond_Min() );
+        //std::pair<std::string, int> max = *max_element(inputMap.begin(), inputMap.end() );
+        
         //iRetVal = getMaxForChannelAND(inputMap);
         //iRetVal = max.second;
         return max.second;
@@ -143,7 +143,7 @@ int QualityControl::Timing::getMinForChannelOR(std::map<std::string, int> inputM
     else{
         std::pair<std::string, int> min = *std::min_element(inputMap.begin(), inputMap.end(), CompareSecond_Min());
         //std::pair<std::string, int> min = *std::min_element(inputMap.begin(), inputMap.end() );
-
+        
         return min.second;
     }
 }
@@ -398,7 +398,7 @@ std::pair<std::string,std::string> QualityControl::Timing::getParsedLine(std::st
     int iPos_Quote1 = strInputLine.find("'",0); //Position of first single-quote
     //int iPos_Quote2 = strInputLine.rfind("'");  //Position of last single-quote
     int iPos_Quote2 = strInputLine.find("'",iPos_Quote1+1); //Position of last single-quote
-
+    
     std::string strFieldName;
     std::string strFieldValue;
     
@@ -489,33 +489,33 @@ std::vector<std::string> QualityControl::Timing::getCharSeparatedList(std::strin
 
 //Returns a vector of strings taken from a comma separated list; ignores whitespaces in between elements
 /*std::vector<std::string> QualityControl::Timing::getCommaSeparatedList(std::string strInput){
-    //Variable Declaration
-    std::vector<std::string> vec_retStrings;
-    
-    //Remove all white spaces and tabs
-    if( !(strInput.find(' ') == std::string::npos) ) strInput.erase(remove(strInput.begin(), strInput.end(), ' '), strInput.end() );
-    if( !(strInput.find('\t')== std::string::npos) ) strInput.erase(remove(strInput.begin(), strInput.end(), '\t'), strInput.end() );
-
-    if (strInput.find(",") == std::string::npos ) { //Case: Comma's not found
-        vec_retStrings.push_back(strInput);
-    } //End Case: Comma's not found
-    else{ //Case: Comma separated list given!
-        //Declare Variables
-        std::stringstream sstream(strInput);
-        
-        std::string strEntry;
-        
-        //Give the input string to the string stream
-        //sstream<<strInput;
-        
-        //Get Entries
-        while ( std::getline(sstream, strEntry, ',') ){ //Loop through the string
-            vec_retStrings.push_back(strEntry);
-        } //End loop through the string
-    } //End Case: Comma separated list given!
-    
-    return vec_retStrings;
-}*/ //End getCommaSeparatedList()
+ //Variable Declaration
+ std::vector<std::string> vec_retStrings;
+ 
+ //Remove all white spaces and tabs
+ if( !(strInput.find(' ') == std::string::npos) ) strInput.erase(remove(strInput.begin(), strInput.end(), ' '), strInput.end() );
+ if( !(strInput.find('\t')== std::string::npos) ) strInput.erase(remove(strInput.begin(), strInput.end(), '\t'), strInput.end() );
+ 
+ if (strInput.find(",") == std::string::npos ) { //Case: Comma's not found
+ vec_retStrings.push_back(strInput);
+ } //End Case: Comma's not found
+ else{ //Case: Comma separated list given!
+ //Declare Variables
+ std::stringstream sstream(strInput);
+ 
+ std::string strEntry;
+ 
+ //Give the input string to the string stream
+ //sstream<<strInput;
+ 
+ //Get Entries
+ while ( std::getline(sstream, strEntry, ',') ){ //Loop through the string
+ vec_retStrings.push_back(strEntry);
+ } //End loop through the string
+ } //End Case: Comma separated list given!
+ 
+ return vec_retStrings;
+ }*/ //End getCommaSeparatedList()
 
 //Unsorted
 //----------------------------------------------------------------------------------------
@@ -523,14 +523,16 @@ std::vector<std::string> QualityControl::Timing::getCharSeparatedList(std::strin
 int QualityControl::Timing::getCyclicColor(int iInput){
     int ret_int;
     
-    switch (iInput % 7) {
+    switch (iInput % 8) {
         case 0:     ret_int = kBlack;     break;
         case 1:     ret_int = kRed+1;     break;
         case 2:     ret_int = kGreen+1;   break;
         case 3:     ret_int = kBlue+1;    break;
-        case 4:     ret_int = kMagenta+1; break;
+        case 4:     ret_int = kCyan; break;
         case 5:     ret_int = kYellow+2;  break;
-        case 6:     ret_int = kOrange+7;  break;
+        case 6:     ret_int = kOrange;  break;
+        case 7:     ret_int = kPink;  break;
+        case 8:     ret_int = kMagenta;  break;
         default:
             break;
     }

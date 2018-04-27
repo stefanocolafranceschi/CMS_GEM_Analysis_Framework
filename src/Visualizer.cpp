@@ -8,6 +8,8 @@
 
 #include "Visualizer.h"
 
+using std::cout;
+using std::endl;
 using std::string;
 
 using namespace QualityControl::Uniformity;
@@ -37,18 +39,25 @@ TPad * Visualizer::getPadEta(int iEta, int iNumEta){
     float fYPad_Low, fYPad_High;
     
     //Determine the Pad Coordinates
-    if (iEta % 2 != 0){ //Case: iEta is Odd
-        fXPad_Low   = 0.02;
-        fXPad_High  = 0.48;
+    if (iEta % 2 == 0){ //Case: iEta is Odd
+        fYPad_Low   = 0.02*0.8;
+        fYPad_High  = 0.48*0.8;
     } //End Case: iEta is Odd
     else{ //Case: iEta is Even
-        fXPad_Low   = 0.52;
-        fXPad_High  = 0.98;
+        fYPad_Low   = 0.52*0.8;
+        fYPad_High  = 0.98*0.8;
     } //End Case: iEta is Even
     
+    
     //Determine the Pad Y-Coordinates (Y=0 is at the top of the pad!)
-    fYPad_Low   = 1. - (1. / (0.5 * iNumEta) ) * ( std::ceil(iEta/2.) - 1);
-    fYPad_High  = 1. - (1. / (0.5 * iNumEta) ) * ( std::ceil(iEta/2.) );
+    if (iEta % 2 != 0){
+        fXPad_Low   =  -0.0046+1. - (1. / (0.5 * iNumEta) ) * ( std::ceil((9-iEta)/2.) - 1)*0.95;
+        fXPad_High  =  0.0546+1. - (1. / (0.5 * iNumEta) ) * ( std::ceil((9-iEta)/2.) )*0.95;
+    }
+    if (iEta % 2 == 0){
+        fXPad_Low   =  -0.0046+1. - (1. / (0.5 * iNumEta) ) * ( std::ceil((9-iEta)/2.) - 1)*0.95;
+        fXPad_High  =  0.0546+1. - (1. / (0.5 * iNumEta) ) * ( std::ceil((9-iEta)/2.) )*0.95;
+    }
     
     //Initialize the Pad
     TPad *ret_pad = new TPad( "tempPad" ,"",fXPad_Low,fYPad_Low,fXPad_High,fYPad_High,kWhite);
@@ -58,6 +67,8 @@ TPad * Visualizer::getPadEta(int iEta, int iNumEta){
 
 //Get a TPad sized for an iPhi Grid
 TPad * Visualizer::getPadPhi(int iEta, int iNumEta, int iPhi, int iNumPhi){
+    iNumEta=4;
+    if (iEta>4) iEta=iEta-4;
     //Variable Declaration
     float fXPad_Low, fXPad_High;
     float fYPad_Low, fYPad_High;
