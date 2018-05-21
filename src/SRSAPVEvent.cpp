@@ -160,11 +160,11 @@ int SRSAPVEvent::NS2StripMapping(int chNo) {
 int SRSAPVEvent::CMSStripMapping(int chNo) {
   if((chNo%2)==1){ //Case: Input is Odd
     //return (128 - ( (chNo - 1) / 2 ) );//ODD
-    return ( ( chNo - 3) / 2 );//ODD
+    return ( ( chNo - 1) / 2 );//ODD input va da 1 a 127 ->0 63
   } //End Case: Input is Odd
   else{ //Case: Input is Even
     //return ( ( chNo / 2 ) - 1 );//EVEN
-    return ( 128 - ( chNo / 2 ) );//EVEN
+    return ( 127 - ( chNo / 2 ) );//EVEN  126 a 0                  ->64...65.. 127
   } //End Case: Input is Even
 }
 
@@ -175,11 +175,11 @@ int SRSAPVEvent::CMSStripMapping(int chNo) {
 int SRSAPVEvent::CMSStripMapping1(int chNo) {
   if((chNo%2)==1){ //Case: Input is Odd
     //return ( (chNo + 125) / 2 );//ODD
-    return ( ( 129 - chNo ) / 2 );//ODD
+    return ( ( 127 - chNo ) / 2 );//ODD
   } //End Case: Input is Odd
   else{ //Case: Input is Even
     //return ( ( 128 - chNo) / 2 );//EVEN
-    return ( ( chNo + 126 ) / 2 );//EVEN
+    return (1+ ( chNo + 126 ) / 2 );//EVEN            127...64
   } //End Case: Input is Even
     
     //return chNo ;
@@ -190,12 +190,12 @@ int SRSAPVEvent::CMSStripMapping1(int chNo) {
 //Use for specific sectors from the set {(5,1),(6,1)}
 int SRSAPVEvent::CMSStripMapping2(int chNo) {
   if((chNo%2)==1){ //Case: Input is Odd
-    //return ( ( 129 - chNo ) / 2 );//ODD
-    return ( ( chNo + 125 ) / 2 );//ODD
+    //return ( ( 127 - chNo ) / 2 );//ODD
+    return (1+ ( chNo + 125 ) / 2 );//ODD
   } //End Case: Input is Odd
   else{ //Case: Input is Even
     //return ( ( chNo + 126 ) / 2 );//EVEN
-    return ( ( 128 - chNo ) / 2 );//EVEN
+    return ( ( 128 - chNo ) / 2 )-1;//EVEN
   } //End Case: Input is Even
 
     //return chNo ;
@@ -206,10 +206,10 @@ int SRSAPVEvent::CMSStripMapping2(int chNo) {
 //Use for specific sectors from ieta rows 2 & 4
 int SRSAPVEvent::CMSStripMapping3(int chNo) {
   if((chNo%2)==1){ //Case: Input is Odd
-    return ( ( 129 - chNo ) / 2 );//ODD
+    return ( ( 127 - chNo ) / 2 );//ODD
   } //End Case: Input is Odd
   else{ //Case: Input is Even
-    return ( ( chNo + 126 ) / 2 );//EVEN
+    return ( 1+( chNo + 126 ) / 2 );//EVEN
   } //End Case: Input is Even
 
     //return chNo ;
@@ -217,7 +217,7 @@ int SRSAPVEvent::CMSStripMapping3(int chNo) {
 
 //=====================================================
 int SRSAPVEvent::CMSStripMapping4(int chNo) {
-  chNo=4;
+  //chNo=4;
   return chNo ;
 }
 
